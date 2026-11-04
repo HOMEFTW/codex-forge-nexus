@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "apiVersion": 3,
+  "id": "homeftw.nexus",
+  "name": "星枢 Nexus",
+  "version": "0.2.0",
+  "description": "独立安装的知识库插件：笔记渲染编辑、双向链接、图谱、数据库、模板、日记和模型工具。无需运行 Obsidian。",
+  "compatibility": {
+    "codex": [
+      "26.1027.6604.0"
+    ],
+    "forge": [
+      ">=0.4.2 <0.5.0"
+    ]
+  },
+  "permissions": [
+    "panels",
+    "sidebar",
+    "conversation.read",
+    "browser",
+    "nexus.read",
+    "nexus.write",
+    "nexus.script"
+  ],
+  "capabilities": [
+    {
+      "name": "panels",
+      "version": 1
+    },
+    {
+      "name": "browser",
+      "version": 1
+    },
+    {
+      "name": "nexus",
+      "version": 1
+    }
+  ],
+  "contributes": {
+    "panels": [
+      {
+        "id": "main",
+        "title": "星枢 Nexus",
+        "entry": "panel.html",
+        "placement": "right"
+      }
+    ],
+    "sidebar": [
+      {
+        "id": "open",
+        "title": "星枢 Nexus",
+        "panel": "main",
+        "icon": {
+          "viewBox": "0 0 24 24",
+          "paths": [
+            "M12 7.25 13.4 10.6 16.75 12 13.4 13.4 12 16.75 10.6 13.4 7.25 12 10.6 10.6Z",
+            "M4.1 8.5A8.65 8.65 0 0 1 16 4.25M19.9 15.5A8.65 8.65 0 0 1 8 19.75",
+            "M20.6 5.4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M6.4 18.6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"
+          ]
+        }
+      }
+    ]
+  },
+  "changelog": [
+    {
+      "version": "0.2.0",
+      "date": "2026-11-04",
+      "items": [
+        "入口仅保留左侧边栏，使用星形轨道专用图标。",
+        "增加 DataviewJS 隔离查询、统计卡片与 Charts 兼容渲染，点击后运行。"
+      ]
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-11-04",
+      "items": [
+        "首次独立插件发布，界面与渲染依赖随插件包交付，通过 Forge Nexus API 访问用户连接的知识库。"
+      ]
+    }
+  ]
+}

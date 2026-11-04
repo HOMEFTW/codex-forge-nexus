@@ -1,0 +1,12 @@
+node_modules/
+dist/
+output/
+.playwright-cli/
+*.log
+.env
+.env.*
+
+# Local acceptance history; public verification is documented in docs/VALIDATION.md.
+/docs/EXTERNAL-PLAN.md
+/docs/EXTERNAL-VALIDATION.md
+/docs/NEXUS-VALIDATION.md
