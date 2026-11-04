@@ -1,6 +1,8 @@
 # 星枢 Nexus API
 
-目标：Codex Forge **0.4.2 / API 3**。能力 `nexus` v1，权限 `nexus.read` / `nexus.write`，外部插件 `homeftw.nexus`。旧版 0.3.4 不提供此能力。
+目标：Codex Forge **0.4.2–0.4.3 / API 3**。能力 `nexus` v1，权限 `nexus.read` / `nexus.write`，外部插件 `homeftw.nexus`。旧版 0.3.4 不提供此能力。
+
+星枢 0.2.1 支持客户端基线 `26.1027.6604.0` 与 `26.1029.7803.0`；新版基线需要 Forge 0.4.3。
 
 渲染层 DataviewJS 另需 `nexus.script` 与 `nexus.read`；`nexus.script` 不可与 `network` 并用。它只允许浏览器中的隔离 Worker，不增加宿主查询语言或 MCP 脚本执行方法，见 [DATAVIEWJS.md](DATAVIEWJS.md)。
 

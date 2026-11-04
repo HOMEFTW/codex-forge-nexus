@@ -6,6 +6,7 @@ import Module, { createRequire } from 'node:module';
 import { populate } from './fixtures.mjs';
 export const project = path.resolve(import.meta.dirname, '..');
 export const forgeRoot = path.resolve(process.env.FORGE_SOURCE || path.join(project, '../codex-forge'));
+export const packageFile = path.join(project, 'dist/Nexus-' + JSON.parse(fs.readFileSync(path.join(project, 'plugin.json'), 'utf8')).version + '.forge-plugin.json');
 const require = createRequire(path.join(forgeRoot, 'package.json'));
 export const forgeRequire = relative => require(path.join(forgeRoot, relative));
 export function harness({ directory = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-external-')), keep = false, install = true } = {}) {
@@ -27,7 +28,6 @@ export function harness({ directory = fs.mkdtempSync(path.join(os.tmpdir(), 'nex
       open() {}, notify() {}, states: new Map(), collaboration: null, nexus: service,
     });
   } finally { Module._load = savedLoad; }
-  const packageFile = path.join(project, 'dist/Nexus-0.2.0.forge-plugin.json');
   if (install) {
     host.registry.install(packageFile);
     host.registry.setEnabled('homeftw.nexus', true);

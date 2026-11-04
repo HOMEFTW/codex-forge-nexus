@@ -4,12 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import readline from 'node:readline';
+import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { createAdapter } from '../src/adapter.mjs';
-import { harness, project, forgeRoot } from '../scripts/harness.mjs';
+import { harness, project, forgeRoot, forgeRequire, packageFile } from '../scripts/harness.mjs';
 
 test('artifact is an external self-contained panel and matches the recorded hash', () => {
-  const file = path.join(project, 'dist/Nexus-0.2.0.forge-plugin.json'), bytes = fs.readFileSync(file), bundle = JSON.parse(bytes);
+  const bytes = fs.readFileSync(packageFile), bundle = JSON.parse(bytes);
   assert.equal(bundle.schemaVersion, 1); const entries = new Map(bundle.files.map(f => [f.path, Buffer.from(f.content, 'base64')]));
   const manifest = JSON.parse(entries.get('plugin.json')); assert.equal(manifest.id, 'homeftw.nexus'); assert.equal(manifest.contributes.panels[0].builtinPage, undefined);
   assert(entries.has(manifest.contributes.panels[0].entry)); assert(!manifest.permissions.includes('network'));
@@ -21,6 +22,34 @@ test('artifact is an external self-contained panel and matches the recorded hash
   assert(entries.has('THIRD-PARTY-NOTICES.txt'));
   assert.equal(entries.get('LICENSE').toString(), fs.readFileSync(path.join(project, 'LICENSE'), 'utf8'));
   assert(fs.readFileSync(path.join(project, 'dist/SHA256SUMS.txt'), 'utf8').startsWith(crypto.createHash('sha256').update(bytes).digest('hex')));
+});
+
+test('release installs and enables on both supported client baselines while rejecting unsupported hosts', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-compatibility-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
+  const targets = [
+    { codex: '26.1027.6604.0', forge: '0.4.2', apiVersion: 3, supported: true },
+    { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3, supported: true },
+    { codex: '26.1029.7804.0', forge: '0.4.3', apiVersion: 3, supported: false },
+    { codex: '26.1027.6604.0', forge: '0.4.1', apiVersion: 3, supported: false },
+    { codex: '26.1029.7803.0', forge: '0.5.0', apiVersion: 3, supported: false },
+    { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 2, supported: false },
+  ];
+  for (const [index, { supported, ...versions }] of targets.entries()) {
+    const registry = new ForgeRegistry({ root: path.join(directory, String(index)), bundledRoot: path.join(directory, 'no-bundled-plugins'), versions });
+    if (!supported) {
+      assert.throws(() => registry.install(packageFile), /兼容范围|Forge API/, JSON.stringify(versions));
+      assert.equal(registry.entries.size, 0); continue;
+    }
+    assert.equal(registry.install(packageFile).enabled, false);
+    registry.setEnabled('homeftw.nexus', true);
+    assert.equal(registry.get('homeftw.nexus').builtin, false);
+    assert.deepEqual(registry.status('homeftw.nexus'), { enabled: true, requestedEnabled: true, reasons: [] });
+    registry.setEnabled('homeftw.nexus', false);
+    assert.throws(() => registry.get('homeftw.nexus'), { code: 'PLUGIN_DISABLED' });
+    registry.uninstall('homeftw.nexus');
+  }
 });
 
 test('external plugin installs disabled, calls public SDK host methods, and can be uninstalled', async t => {
