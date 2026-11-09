@@ -14,25 +14,27 @@
 
 | 要求 | 版本或说明 |
 | --- | --- |
-| 星枢 | 当前版本 **0.2.1** |
-| Forge | **>= 0.4.2 且 < 0.5.0**，API 3 |
-| Codex 桌面基线 | `26.1027.6604.0`（Forge 0.4.2）、`26.1029.7803.0`（Forge 0.4.3） |
+| 星枢 | 当前版本 **0.2.2** |
+| Forge | **>= 0.4.2 且 < 0.6.0**，API 3 |
+| Codex 桌面基线 | `26.1027.6604.0`（Forge 0.4.2）、`26.1029.7803.0`（Forge 0.4.3 / 0.4.4）、`26.1103.4239.0`（Forge 0.5.0） |
 | 已验证环境 | Windows、本地 NTFS 知识库 |
 
-**Forge 0.4.1 无法运行本版本**：缺少自定义侧栏图标和 `nexus.script` 隔离 Worker 权限。新版官方客户端 `26.1029.7803.0` 需要配套 [Forge 0.4.3 正式版](https://github.com/HOMEFTW/codex-forge/releases/tag/v0.4.3)，已包含独立插件覆盖升级和完整视图遮挡修复；旧基线仍可使用 Forge 0.4.2。客户端由 Forge 项目单独发行。
+**Forge 0.4.1 无法运行本版本**：缺少自定义侧栏图标和 `nexus.script` 隔离 Worker 权限。新版官方客户端 `26.1103.4239.0` 需要配套 [Forge 0.5.0 正式版](https://github.com/HOMEFTW/codex-forge/releases/tag/v0.5.0)；旧基线仍可使用上表对应的 Forge 版本。Forge 0.4.3 起已包含独立插件覆盖升级和完整视图遮挡修复。客户端由 Forge 项目单独发行。
 
-1. 从 [v0.2.1 Release](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.2.1) 下载 **`Nexus-0.2.1.zip`** 或 **`Nexus-0.2.1.forge-plugin.json`**。GitHub 自动生成的 `Source code` 压缩包是源码，不是可导入插件。
+1. 从 [v0.2.2 Release](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.2.2) 下载 **`Nexus-0.2.2.zip`** 或 **`Nexus-0.2.2.forge-plugin.json`**。GitHub 自动生成的 `Source code` 压缩包是源码，不是可导入插件。
 2. 打开 Forge「插件管理」→「导入插件包…」，选择下载的 ZIP 或 JSON。也可以解压 ZIP，通过「安装插件」选择其中的 `homeftw.nexus` 文件夹。
 3. 检查权限并启用「星枢 Nexus」。导入后默认停用。
 4. 点击**左侧边栏**的星形轨道图标，再点击「连接目录」，通过原生选择器选择知识库根目录。普通 Markdown 文件夹也可以连接。
 5. 打开笔记即可阅读或编辑；`Ctrl/Cmd + S` 保存。DataviewJS 代码块需要点击「运行此查询」。
 
-从 0.1.0 / 0.2.0 升级时，先安装匹配基线的 Forge。在 Forge 0.4.3 中直接导入 0.2.1，按宿主提示完成升级、权限检查和重启；如果旧客户端提示「插件已存在」，先升级宿主，或停用并卸载旧版星枢后再导入。插件停用或卸载后，笔记仍保留在原目录；宿主同时隐藏并拒绝星枢的模型工具。入口仅出现在左侧边栏，折叠后保留图标。
+从 0.1.0 / 0.2.0 / 0.2.1 升级时，在 Forge 0.4.3 或更新版中直接导入 0.2.2，按提示重启，再检查启用状态。若已升级到 Forge 0.5.0，旧版星枢会因兼容范围不符而停用；导入新版后需要先重启，暂存阶段仍显示旧版本是正常现象。已经审阅且保持启用意愿的插件，在权限未变化时重启后恢复启用；主动停用的插件保持停用。也可先在旧宿主中升级星枢，再升级客户端。无需卸载，知识库连接与插件存储保留。如果更旧的客户端提示「插件已存在」，请先升级宿主。
+
+插件停用或卸载后，笔记仍保留在原目录；宿主同时隐藏并拒绝星枢的模型工具。入口仅出现在左侧边栏，折叠后保留图标。
 
 Release 提供 `SHA256SUMS.txt`。Windows 可用下面的命令核对下载内容：
 
 ```powershell
-Get-FileHash .\Nexus-0.2.1.zip -Algorithm SHA256
+Get-FileHash .\Nexus-0.2.2.zip -Algorithm SHA256
 ```
 
 ## 能做什么
@@ -119,13 +121,13 @@ npm run build
 ```text
 dist/
   homeftw.nexus/                       # 可按目录安装
-  Nexus-0.2.1.forge-plugin.json         # 可导入插件包
-  Nexus-0.2.1.zip                      # Windows 构建时额外生成
+  Nexus-0.2.2.forge-plugin.json         # 可导入插件包
+  Nexus-0.2.2.zip                      # Windows 构建时额外生成
   SHA256SUMS.txt
   build-info.json
 ```
 
-构建不需要 Forge 源码。集成测试和本地预览需要包含 **Forge 0.4.3 / API 3** 实现的宿主源码及其依赖；默认使用相邻的 `../codex-forge`，也可以指定路径：
+构建不需要 Forge 源码。集成测试和本地预览使用 **Forge 0.5.0 / API 3** 宿主源码及其依赖；默认使用相邻的 `../codex-forge`，也可以指定路径：
 
 ```powershell
 $env:FORGE_SOURCE = "D:\path\to\codex-forge"

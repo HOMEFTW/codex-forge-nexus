@@ -24,16 +24,20 @@ test('artifact is an external self-contained panel and matches the recorded hash
   assert(fs.readFileSync(path.join(project, 'dist/SHA256SUMS.txt'), 'utf8').startsWith(crypto.createHash('sha256').update(bytes).digest('hex')));
 });
 
-test('release installs and enables on both supported client baselines while rejecting unsupported hosts', t => {
+test('release installs and enables on supported client baselines while rejecting unsupported hosts', t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-compatibility-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
   const targets = [
     { codex: '26.1027.6604.0', forge: '0.4.2', apiVersion: 3, supported: true },
     { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3, supported: true },
+    { codex: '26.1029.7803.0', forge: '0.4.4', apiVersion: 3, supported: true },
+    { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3, supported: true },
     { codex: '26.1029.7804.0', forge: '0.4.3', apiVersion: 3, supported: false },
     { codex: '26.1027.6604.0', forge: '0.4.1', apiVersion: 3, supported: false },
-    { codex: '26.1029.7803.0', forge: '0.5.0', apiVersion: 3, supported: false },
+    { codex: '26.1103.4240.0', forge: '0.5.0', apiVersion: 3, supported: false },
+    { codex: '26.1103.4239.0', forge: '0.6.0', apiVersion: 3, supported: false },
+    { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 4, supported: false },
     { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 2, supported: false },
   ];
   for (const [index, { supported, ...versions }] of targets.entries()) {
@@ -50,6 +54,43 @@ test('release installs and enables on both supported client baselines while reje
     assert.throws(() => registry.get('homeftw.nexus'), { code: 'PLUGIN_DISABLED' });
     registry.uninstall('homeftw.nexus');
   }
+});
+
+test('a reviewed 0.2.1 install upgrades on Forge 0.5.0 at restart and preserves vault data', t => {
+  const h = harness({ install: false }); t.after(() => h.dispose());
+  const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
+  const { applyPending, pendingUpdates } = forgeRequire('runtime/forge-plugin-updates.cjs');
+  const bundle = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
+  const manifestFile = bundle.files.find(file => file.path === 'plugin.json');
+  const current = JSON.parse(Buffer.from(manifestFile.content, 'base64'));
+  // Reproduce the published old version's compatibility contract without a network fixture.
+  const old = { ...current, version: '0.2.1', compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0'], forge: ['>=0.4.2 <0.5.0'] } };
+  manifestFile.content = Buffer.from(JSON.stringify(old)).toString('base64');
+  const oldPackage = path.join(h.directory, 'old.forge-plugin.json');
+  fs.writeFileSync(oldPackage, JSON.stringify(bundle));
+  const options = { root: h.home, bundledRoot: path.join(h.directory, 'no-bundled-plugins') };
+  const previous = new ForgeRegistry({ ...options, versions: { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3 } });
+  previous.install(oldPackage); previous.setEnabled(current.id, true);
+  const vaultId = h.service.connect(h.vault).vault.id;
+  const vaults = h.service.dispatch('vaults'), note = fs.readFileSync(path.join(h.vault, '首页.md'));
+  const storage = path.join(h.home, 'storage', current.id + '.json');
+  fs.writeFileSync(storage, JSON.stringify({ fixture: 'preserved' }));
+  const upgraded = new ForgeRegistry({ ...options, versions: { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3 } });
+  assert.equal(upgraded.status(current.id).enabled, false);
+  assert.equal(upgraded.status(current.id).requestedEnabled, true);
+  const staged = upgraded.install(packageFile);
+  assert.equal(staged.restartRequired, true);
+  assert.equal(staged.permissionsChanged, false);
+  assert.equal(upgraded.get(current.id, false).manifest.version, '0.2.1');
+  assert.throws(() => upgraded.setEnabled(current.id, true), { code: 'PLUGIN_UPDATE_PENDING' });
+  const restarted = new ForgeRegistry({ ...options, versions: upgraded.versions });
+  assert.equal(applyPending(restarted)[0].status, 'installed');
+  assert.equal(restarted.get(current.id).manifest.version, current.version);
+  assert.deepEqual(pendingUpdates(restarted), {});
+  assert.deepEqual(JSON.parse(fs.readFileSync(storage)), { fixture: 'preserved' });
+  assert.deepEqual(h.service.dispatch('vaults'), vaults);
+  assert.equal(h.service.dispatch('read', { vaultId, path: '首页.md' }).content, note.toString());
+  assert.deepEqual(fs.readFileSync(path.join(h.vault, '首页.md')), note);
 });
 
 test('external plugin installs disabled, calls public SDK host methods, and can be uninstalled', async t => {
