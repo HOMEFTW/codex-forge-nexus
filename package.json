@@ -1,6 +1,6 @@
 {
   "name": "@homeftw/forge-nexus",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "description": "星枢 Nexus：Codex Forge 外部知识库插件",

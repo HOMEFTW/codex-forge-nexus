@@ -33,9 +33,12 @@ test('release installs and enables on supported client baselines while rejecting
     { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3, supported: true },
     { codex: '26.1029.7803.0', forge: '0.4.4', apiVersion: 3, supported: true },
     { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3, supported: true },
+    { codex: '26.1103.4239.0', forge: '0.5.1', apiVersion: 3, supported: true },
+    { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3, supported: true },
     { codex: '26.1029.7804.0', forge: '0.4.3', apiVersion: 3, supported: false },
     { codex: '26.1027.6604.0', forge: '0.4.1', apiVersion: 3, supported: false },
     { codex: '26.1103.4240.0', forge: '0.5.0', apiVersion: 3, supported: false },
+    { codex: '26.1103.7774.0', forge: '0.5.2', apiVersion: 3, supported: false },
     { codex: '26.1103.4239.0', forge: '0.6.0', apiVersion: 3, supported: false },
     { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 4, supported: false },
     { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 2, supported: false },
@@ -56,7 +59,10 @@ test('release installs and enables on supported client baselines while rejecting
   }
 });
 
-test('a reviewed 0.2.1 install upgrades on Forge 0.5.0 at restart and preserves vault data', t => {
+for (const scenario of [
+  { version: '0.2.1', compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0'], forge: ['>=0.4.2 <0.5.0'] }, previous: { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3 }, next: { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3 } },
+  { version: '0.2.2', compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0', '26.1103.4239.0'], forge: ['>=0.4.2 <0.6.0'] }, previous: { codex: '26.1103.4239.0', forge: '0.5.1', apiVersion: 3 }, next: { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3 } },
+]) test(`a reviewed ${scenario.version} install upgrades on Forge ${scenario.next.forge} at restart and preserves vault data`, t => {
   const h = harness({ install: false }); t.after(() => h.dispose());
   const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
   const { applyPending, pendingUpdates } = forgeRequire('runtime/forge-plugin-updates.cjs');
@@ -64,24 +70,24 @@ test('a reviewed 0.2.1 install upgrades on Forge 0.5.0 at restart and preserves 
   const manifestFile = bundle.files.find(file => file.path === 'plugin.json');
   const current = JSON.parse(Buffer.from(manifestFile.content, 'base64'));
   // Reproduce the published old version's compatibility contract without a network fixture.
-  const old = { ...current, version: '0.2.1', compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0'], forge: ['>=0.4.2 <0.5.0'] } };
+  const old = { ...current, version: scenario.version, compatibility: scenario.compatibility };
   manifestFile.content = Buffer.from(JSON.stringify(old)).toString('base64');
   const oldPackage = path.join(h.directory, 'old.forge-plugin.json');
   fs.writeFileSync(oldPackage, JSON.stringify(bundle));
   const options = { root: h.home, bundledRoot: path.join(h.directory, 'no-bundled-plugins') };
-  const previous = new ForgeRegistry({ ...options, versions: { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3 } });
+  const previous = new ForgeRegistry({ ...options, versions: scenario.previous });
   previous.install(oldPackage); previous.setEnabled(current.id, true);
   const vaultId = h.service.connect(h.vault).vault.id;
   const vaults = h.service.dispatch('vaults'), note = fs.readFileSync(path.join(h.vault, '首页.md'));
   const storage = path.join(h.home, 'storage', current.id + '.json');
   fs.writeFileSync(storage, JSON.stringify({ fixture: 'preserved' }));
-  const upgraded = new ForgeRegistry({ ...options, versions: { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3 } });
+  const upgraded = new ForgeRegistry({ ...options, versions: scenario.next });
   assert.equal(upgraded.status(current.id).enabled, false);
   assert.equal(upgraded.status(current.id).requestedEnabled, true);
   const staged = upgraded.install(packageFile);
   assert.equal(staged.restartRequired, true);
   assert.equal(staged.permissionsChanged, false);
-  assert.equal(upgraded.get(current.id, false).manifest.version, '0.2.1');
+  assert.equal(upgraded.get(current.id, false).manifest.version, scenario.version);
   assert.throws(() => upgraded.setEnabled(current.id, true), { code: 'PLUGIN_UPDATE_PENDING' });
   const restarted = new ForgeRegistry({ ...options, versions: upgraded.versions });
   assert.equal(applyPending(restarted)[0].status, 'installed');
