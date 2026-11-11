@@ -1,6 +1,6 @@
 // The external plugin uses only the public, source-checked Forge SDK.
 export function createAdapter(forge) {
-  if (!forge?.nexus?.request || !forge.nexus.connect || !forge.nexus.disconnect) throw Error('请升级到支持外部 Nexus 插件的 Forge 0.4.2 或更高版本。');
+  if (forge?.apiVersion !== 4 || !forge.nexus?.request || !forge.nexus.connect || !forge.nexus.disconnect) throw Error('请升级到 Forge 0.6.0 或兼容的 API 4 版本。');
   return {
     request(channel, { method, args = {} } = {}) {
       if (channel !== 'nexus') throw Error('未知插件请求');

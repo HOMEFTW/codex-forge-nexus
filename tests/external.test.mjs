@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import readline from 'node:readline';
 import os from 'node:os';
+import vm from 'node:vm';
 import { spawn } from 'node:child_process';
 import { createAdapter } from '../src/adapter.mjs';
 import { harness, project, forgeRoot, forgeRequire, packageFile } from '../scripts/harness.mjs';
@@ -29,19 +30,14 @@ test('release installs and enables on supported client baselines while rejecting
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
   const targets = [
-    { codex: '26.1027.6604.0', forge: '0.4.2', apiVersion: 3, supported: true },
-    { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3, supported: true },
-    { codex: '26.1029.7803.0', forge: '0.4.4', apiVersion: 3, supported: true },
-    { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3, supported: true },
-    { codex: '26.1103.4239.0', forge: '0.5.1', apiVersion: 3, supported: true },
-    { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3, supported: true },
-    { codex: '26.1029.7804.0', forge: '0.4.3', apiVersion: 3, supported: false },
-    { codex: '26.1027.6604.0', forge: '0.4.1', apiVersion: 3, supported: false },
-    { codex: '26.1103.4240.0', forge: '0.5.0', apiVersion: 3, supported: false },
-    { codex: '26.1103.7774.0', forge: '0.5.2', apiVersion: 3, supported: false },
-    { codex: '26.1103.4239.0', forge: '0.6.0', apiVersion: 3, supported: false },
-    { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 4, supported: false },
-    { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 2, supported: false },
+    { codex: '26.1103.7773.0', forge: '0.6.0', apiVersion: 4, supported: true },
+    { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3, supported: false },
+    { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 4, supported: false },
+    { codex: '26.1103.7773.0', forge: '0.7.0', apiVersion: 4, supported: false },
+    { codex: '26.1103.7774.0', forge: '0.6.0', apiVersion: 4, supported: false },
+    { codex: '26.1103.4239.0', forge: '0.6.0', apiVersion: 4, supported: false },
+    { codex: '26.1103.7773.0', forge: '0.6.0', apiVersion: 3, supported: false },
+    { codex: '26.1103.7773.0', forge: '0.6.0', apiVersion: 5, supported: false },
   ];
   for (const [index, { supported, ...versions }] of targets.entries()) {
     const registry = new ForgeRegistry({ root: path.join(directory, String(index)), bundledRoot: path.join(directory, 'no-bundled-plugins'), versions });
@@ -59,10 +55,7 @@ test('release installs and enables on supported client baselines while rejecting
   }
 });
 
-for (const scenario of [
-  { version: '0.2.1', compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0'], forge: ['>=0.4.2 <0.5.0'] }, previous: { codex: '26.1029.7803.0', forge: '0.4.3', apiVersion: 3 }, next: { codex: '26.1103.4239.0', forge: '0.5.0', apiVersion: 3 } },
-  { version: '0.2.2', compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0', '26.1103.4239.0'], forge: ['>=0.4.2 <0.6.0'] }, previous: { codex: '26.1103.4239.0', forge: '0.5.1', apiVersion: 3 }, next: { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3 } },
-]) test(`a reviewed ${scenario.version} install upgrades on Forge ${scenario.next.forge} at restart and preserves vault data`, t => {
+for (const enabled of [true, false]) test(`API 3 upgrade to API 4 preserves requested enablement (${enabled}), settings, storage and vault data`, t => {
   const h = harness({ install: false }); t.after(() => h.dispose());
   const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
   const { applyPending, pendingUpdates } = forgeRequire('runtime/forge-plugin-updates.cjs');
@@ -70,31 +63,39 @@ for (const scenario of [
   const manifestFile = bundle.files.find(file => file.path === 'plugin.json');
   const current = JSON.parse(Buffer.from(manifestFile.content, 'base64'));
   // Reproduce the published old version's compatibility contract without a network fixture.
-  const old = { ...current, version: scenario.version, compatibility: scenario.compatibility };
+  const old = { ...current, version: '0.2.3', apiVersion: 3, compatibility: { codex: ['26.1027.6604.0', '26.1029.7803.0', '26.1103.4239.0', '26.1103.7773.0'], forge: ['>=0.4.2 <0.6.0'] } };
   manifestFile.content = Buffer.from(JSON.stringify(old)).toString('base64');
   const oldPackage = path.join(h.directory, 'old.forge-plugin.json');
   fs.writeFileSync(oldPackage, JSON.stringify(bundle));
   const options = { root: h.home, bundledRoot: path.join(h.directory, 'no-bundled-plugins') };
-  const previous = new ForgeRegistry({ ...options, versions: scenario.previous });
+  const previous = new ForgeRegistry({ ...options, versions: { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3 } });
   previous.install(oldPackage); previous.setEnabled(current.id, true);
+  if (!enabled) previous.setEnabled(current.id, false);
   const vaultId = h.service.connect(h.vault).vault.id;
+  const defaults = h.service.dispatch('settings', { vaultId });
+  const settings = h.service.dispatch('settings_write', { vaultId, expectedRevision: defaults.revision, values: { dailyFolder: '升级保留日记' } });
   const vaults = h.service.dispatch('vaults'), note = fs.readFileSync(path.join(h.vault, '首页.md'));
   const storage = path.join(h.home, 'storage', current.id + '.json');
   fs.writeFileSync(storage, JSON.stringify({ fixture: 'preserved' }));
-  const upgraded = new ForgeRegistry({ ...options, versions: scenario.next });
+  const upgraded = new ForgeRegistry({ ...options, versions: { codex: '26.1103.7773.0', forge: '0.6.0', apiVersion: 4 } });
   assert.equal(upgraded.status(current.id).enabled, false);
-  assert.equal(upgraded.status(current.id).requestedEnabled, true);
+  assert.equal(upgraded.status(current.id).requestedEnabled, enabled);
+  assert(upgraded.status(current.id).reasons.some(reason => reason.includes('需要 Forge API 3，当前 4')));
+  assert.throws(() => upgraded.setEnabled(current.id, true), /需要 Forge API 3，当前 4/);
   const staged = upgraded.install(packageFile);
   assert.equal(staged.restartRequired, true);
   assert.equal(staged.permissionsChanged, false);
-  assert.equal(upgraded.get(current.id, false).manifest.version, scenario.version);
+  assert.equal(upgraded.get(current.id, false).manifest.version, '0.2.3');
   assert.throws(() => upgraded.setEnabled(current.id, true), { code: 'PLUGIN_UPDATE_PENDING' });
   const restarted = new ForgeRegistry({ ...options, versions: upgraded.versions });
   assert.equal(applyPending(restarted)[0].status, 'installed');
-  assert.equal(restarted.get(current.id).manifest.version, current.version);
+  assert.equal(restarted.get(current.id, false).manifest.version, current.version);
+  assert.equal(restarted.status(current.id).enabled, enabled);
+  assert.equal(restarted.status(current.id).requestedEnabled, enabled);
   assert.deepEqual(pendingUpdates(restarted), {});
   assert.deepEqual(JSON.parse(fs.readFileSync(storage)), { fixture: 'preserved' });
   assert.deepEqual(h.service.dispatch('vaults'), vaults);
+  assert.deepEqual(h.service.dispatch('settings', { vaultId }), settings);
   assert.equal(h.service.dispatch('read', { vaultId, path: '首页.md' }).content, note.toString());
   assert.deepEqual(fs.readFileSync(path.join(h.vault, '首页.md')), note);
 });
@@ -105,14 +106,35 @@ test('external plugin installs disabled, calls public SDK host methods, and can 
   assert.equal(h.host.registry.get('homeftw.nexus', false).builtin, false);
   assert.equal((await h.api('nexus.request', { method: 'vaults' })).ok, false);
   h.host.registry.setEnabled('homeftw.nexus', true);
-  const unwrap = async (method, args) => { const reply = await h.api(method, args); if (!reply.ok) throw Object.assign(Error(reply.error.message), { code: reply.error.code }); return reply.result; };
-  const sdk = { nexus: { connect: () => unwrap('nexus.connect', {}), disconnect: vaultId => unwrap('nexus.disconnect', { vaultId }), request: (method, args) => unwrap('nexus.request', { method, args }) }, browser: { open: url => unwrap('browser.open', { url }) } };
+  const listeners = [], sdkErrors = [];
+  const parent = { postMessage({ forgePluginRequest: request }) {
+    if (!request) return;
+    h.api(request.method, request.args).then(reply => {
+      for (const listener of listeners) listener({ source: parent, data: { forgePluginReply: { id: request.id, ...(reply.ok ? { result: reply.result } : { error: reply.error }) } } });
+    });
+  } };
+  const sandbox = { window: { addEventListener: (_name, listener) => listeners.push(listener) }, parent, setTimeout, clearTimeout, console: { error: error => sdkErrors.push(error) } };
+  vm.runInNewContext(fs.readFileSync(path.join(forgeRoot, 'runtime/forge-sdk.js'), 'utf8'), sandbox);
+  const sdk = sandbox.window.CodexForge;
+  t.after(() => { for (const listener of listeners) listener({ source: parent, data: { forgePluginEvent: { name: 'dispose' } } }); });
+  const context = await new Promise(resolve => sdk.events.on('ready', resolve));
+  assert.equal(sdk.apiVersion, 4); assert.equal(context.apiVersion, 4);
+  const capabilities = await sdk.capabilities.get();
+  assert(capabilities.negotiated.some(item => item.name === 'nexus' && item.version === 1 && item.granted));
+  assert(!capabilities.permissions.includes('conversation.predict'));
+  assert(!capabilities.negotiated.some(item => item.name === 'prompt-prediction'));
+  assert.throws(() => createAdapter({ ...sdk, apiVersion: 3 }), /Forge 0\.6\.0.*API 4/);
   const api = createAdapter(sdk); const connected = await api.request('nexus', { method: 'connect' });
   const vaultId = connected.vault.id;
   const doc = await api.request('nexus', { method: 'read', args: { vaultId, path: '首页.md' } });
   await api.request('nexus', { method: 'write', args: { vaultId, path: doc.path, expectedRevision: doc.revision, content: '# External plugin write' } });
   assert.equal(fs.readFileSync(path.join(h.vault, doc.path), 'utf8'), '# External plugin write');
   await assert.rejects(api.request('nexus', { method: 'write', args: { vaultId, path: doc.path, expectedRevision: doc.revision, content: 'stale' } }), { code: 'REVISION_CONFLICT' });
+  assert.equal(fs.readFileSync(path.join(h.vault, doc.path), 'utf8'), '# External plugin write');
+  const settings = await api.request('nexus', { method: 'settings', args: { vaultId } });
+  await api.request('nexus', { method: 'settings_write', args: { vaultId, expectedRevision: settings.revision, values: { dailyFolder: 'API4日记' } } });
+  await assert.rejects(api.request('nexus', { method: 'settings_write', args: { vaultId, expectedRevision: settings.revision, values: { dailyFolder: 'stale' } } }), { code: 'REVISION_CONFLICT' });
+  assert.equal((await api.request('nexus', { method: 'settings', args: { vaultId } })).dailyFolder, 'API4日记');
   assert.equal((await h.api('nexus.connect', { root: h.vault })).ok, false);
   await api.request('nexus', { method: 'openExternal', args: { url: 'https://example.com/' } }); assert.equal(h.nativeCalls.at(-1).url, 'https://example.com/');
   const response = h.response(); assert.equal(response.status, 200); const csp = response.headers.get('content-security-policy'); assert.match(csp, /media-src data:/); assert.match(csp, /frame-src 'none'/); assert.match(csp, /worker-src blob:/); assert.match(csp, /connect-src 'none'/); assert(!csp.includes('unsafe-eval'));
@@ -121,6 +143,7 @@ test('external plugin installs disabled, calls public SDK host methods, and can 
   h.host.registry.setEnabled('homeftw.nexus', false); assert.equal((await h.api('nexus.request', { method: 'vaults' })).ok, false);
   assert.equal(h.host.registry.uninstall('homeftw.nexus').removed, 'homeftw.nexus');
   assert.equal(fs.readFileSync(path.join(h.vault, doc.path), 'utf8'), '# External plugin write');
+  assert.deepEqual(sdkErrors, []);
 });
 
 test('real MCP follows external package install, enable, disable and uninstall', async t => {
@@ -137,6 +160,8 @@ test('real MCP follows external package install, enable, disable and uninstall',
   h.host.registry.setEnabled('homeftw.nexus', true); assert((await names()).includes('nexus_write'));
   const doc = JSON.parse((await call('nexus_read', { vaultId, path: '首页.md' })).content[0].text);
   assert(!(await call('nexus_write', { vaultId, path: doc.path, expectedRevision: doc.revision, content: '# External MCP' })).isError);
+  assert.equal(fs.readFileSync(path.join(h.vault, doc.path), 'utf8'), '# External MCP');
+  assert((await call('nexus_write', { vaultId, path: doc.path, expectedRevision: doc.revision, content: 'stale MCP' })).isError);
   assert.equal(fs.readFileSync(path.join(h.vault, doc.path), 'utf8'), '# External MCP');
   h.host.registry.setEnabled('homeftw.nexus', false); assert.deepEqual(await names(), []); assert((await call('nexus_read', { vaultId, path: doc.path })).isError);
   h.host.registry.setEnabled('homeftw.nexus', true); assert((await names()).includes('nexus_read'));
