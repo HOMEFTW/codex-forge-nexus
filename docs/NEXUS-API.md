@@ -1,6 +1,6 @@
 # 星枢 Nexus API
 
-目标：星枢 0.3.0、Codex Forge **0.6.x / API 4 / 客户端 26.1103.7773.0**。能力 `nexus` v1、权限 `nexus.read` / `nexus.write` 和外部插件 ID `homeftw.nexus` 保持不变。API 3 宿主使用星枢 0.2.3。
+目标：星枢 0.3.1、Codex Forge **>=0.6.1 <0.7.0 / API 4**。插件清单省略 `compatibility.codex`，官方 Codex 客户端适配由 Forge 负责。能力 `nexus` v1、权限 `nexus.read` / `nexus.write` 和外部插件 ID `homeftw.nexus` 保持不变。Forge 0.6.0 使用星枢 0.3.0，API 3 宿主使用星枢 0.2.3。Forge 0.6.1 的旧 API 兼容不改变星枢当前的 API 4 声明。
 
 SDK 由 Forge 宿主注入，`window.CodexForge.apiVersion` 必须为 4；本插件不携带旧 SDK。Nexus v1 方法、参数、返回值和 revision 保护沿用 API 3 契约。API 4 新增的 `conversation.predict` / `prompt-prediction@1` 仅供内置预测插件，星枢不申请也不调用。
 

@@ -14,29 +14,29 @@
 
 | 要求 | 版本或说明 |
 | --- | --- |
-| 星枢 | 当前版本 **0.3.0** |
-| Forge | **>= 0.6.0 且 < 0.7.0**，API 4 |
-| Codex 桌面基线 | `26.1103.7773.0`（Forge 0.6.0） |
+| 星枢 | 当前版本 **0.3.1** |
+| Forge | **>= 0.6.1 且 < 0.7.0**，API 4 |
+| 官方 Codex 客户端 | 插件不限制版本，由 Forge 负责适配 |
 | 已验证环境 | Windows、本地 NTFS 知识库 |
 
-**本版本需要 API 4 宿主**。Forge 0.4.2–0.5.2 / API 3 用户请继续使用 [星枢 0.2.3](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.2.3)。客户端由 [Forge 项目](https://github.com/HOMEFTW/codex-forge/releases) 单独发行；官方客户端基线未变，变化的是 Forge 插件 API。
+**本版本需要 Forge 0.6.1+ / API 4**。插件清单省略 `compatibility.codex`，不会随官方客户端版本变化而单独阻止加载；客户端适配由 [Forge 项目](https://github.com/HOMEFTW/codex-forge/releases) 负责。Forge 0.6.0 用户可继续使用 [星枢 0.3.0](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.3.0)，Forge 0.4.2–0.5.2 / API 3 用户可继续使用 [星枢 0.2.3](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.2.3)。
 
-1. 从 [v0.3.0 Release](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.3.0) 下载 **`Nexus-0.3.0.zip`** 或 **`Nexus-0.3.0.forge-plugin.json`**。GitHub 自动生成的 `Source code` 压缩包是源码，不是可导入插件。
+1. 从 [v0.3.1 Release](https://github.com/HOMEFTW/codex-forge-nexus/releases/tag/v0.3.1) 下载 **`Nexus-0.3.1.zip`** 或 **`Nexus-0.3.1.forge-plugin.json`**。GitHub 自动生成的 `Source code` 压缩包是源码，不是可导入插件。
 2. 打开 Forge「插件管理」→「导入插件包…」，选择下载的 ZIP 或 JSON。也可以解压 ZIP，通过「安装插件」选择其中的 `homeftw.nexus` 文件夹。
 3. 检查权限并启用「星枢 Nexus」。导入后默认停用。
 4. 点击**左侧边栏**的星形轨道图标，再点击「连接目录」，通过原生选择器选择知识库根目录。普通 Markdown 文件夹也可以连接。
 5. 打开笔记即可阅读或编辑；`Ctrl/Cmd + S` 保存。DataviewJS 代码块需要点击「运行此查询」。
 
-从 0.2.3 或更早版本升级时，**先将宿主升级到 Forge 0.6.0，再导入星枢 0.3.0 并按提示重启**。旧宿主更新器不接受 API 4 更新清单，首次迁移请使用 [Forge 0.6.0 发布页](https://github.com/HOMEFTW/codex-forge/releases/tag/v0.6.0) 的新版 MSI、便携 ZIP 或独立更新器。API 3 星枢在新宿主中会显示不兼容，设置、存储和连接数据仍保留。
+从旧版升级时，**先将宿主升级到 Forge 0.6.1，再导入星枢 0.3.1 并按提示重启**。Forge 0.5.x 的旧更新器不接受 API 4 更新清单，首次迁移请使用 [Forge 0.6.1 发布页](https://github.com/HOMEFTW/codex-forge/releases/tag/v0.6.1) 的新版 MSI、便携 ZIP 或独立更新器。旧星枢可能因其清单中的 Forge 或 Codex 版本范围显示不兼容，设置、存储和连接数据仍保留。Forge 从 0.6.1 起兼容旧 API 1–3，但不会自动改写旧插件的版本范围。
 
-无需卸载旧插件；导入新版后先暂存，重启前仍显示旧版本属于正常现象。已经审阅且保持启用意愿的插件，在权限未变化时重启后恢复启用；主动停用的插件保持停用。不要在 API 3 宿主中导入 0.3.0。
+无需卸载旧插件；导入新版后先暂存，重启前仍显示旧版本属于正常现象。已经审阅且保持启用意愿的插件，在权限未变化时重启后恢复启用；主动停用的插件保持停用。不要在 Forge 0.6.0 或 API 3 宿主中导入 0.3.1。
 
 插件停用或卸载后，笔记仍保留在原目录；宿主同时隐藏并拒绝星枢的模型工具。入口仅出现在左侧边栏，折叠后保留图标。
 
 Release 提供 `SHA256SUMS.txt`。Windows 可用下面的命令核对下载内容：
 
 ```powershell
-Get-FileHash .\Nexus-0.3.0.zip -Algorithm SHA256
+Get-FileHash .\Nexus-0.3.1.zip -Algorithm SHA256
 ```
 
 ## 能做什么
@@ -123,13 +123,13 @@ npm run build
 ```text
 dist/
   homeftw.nexus/                       # 可按目录安装
-  Nexus-0.3.0.forge-plugin.json         # 可导入插件包
-  Nexus-0.3.0.zip                      # Windows 构建时额外生成
+  Nexus-0.3.1.forge-plugin.json         # 可导入插件包
+  Nexus-0.3.1.zip                      # Windows 构建时额外生成
   SHA256SUMS.txt
   build-info.json
 ```
 
-构建不需要 Forge 源码。浏览器 SDK 由宿主注入为 `window.CodexForge`，不随插件复制旧 SDK；0.3.0 要求 `apiVersion === 4`，继续调用 Nexus v1 方法。集成测试和本地预览使用 **Forge 0.6.0 / API 4** 宿主源码及其依赖；默认使用相邻的 `../codex-forge`，也可以指定路径：
+构建不需要 Forge 源码。浏览器 SDK 由宿主注入为 `window.CodexForge`，不随插件复制旧 SDK；0.3.1 要求 `apiVersion === 4`，继续调用 Nexus v1 方法，不检查官方客户端版本。打包直接使用根目录 `plugin.json`，生成的 ZIP、JSON 和构建目录均省略 `compatibility.codex`；`build-info.json` 仅记录插件构建信息。集成测试和本地预览使用 **Forge 0.6.1 / API 4** 宿主源码及其依赖；默认使用相邻的 `../codex-forge`，也可以指定路径：
 
 ```powershell
 $env:FORGE_SOURCE = "D:\path\to\codex-forge"
