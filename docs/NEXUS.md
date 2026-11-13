@@ -1,6 +1,6 @@
 # 星枢 Nexus
 
-星枢是可单独安装、停用和卸载的外部插件（homeftw.nexus），在 Forge 内独立浏览、渲染和编辑本地知识库，兼容 Obsidian 文件格式与常用插件语法。0.3.1 要求 **Forge >=0.6.1 <0.7.0 / API 4**，不限制官方 Codex 客户端版本，客户端适配由 Forge 负责；无需启动 Obsidian，也无需在 Obsidian 安装桥接插件。
+星枢是可单独安装、停用和卸载的外部插件（homeftw.nexus），在 Forge 内独立浏览、渲染和编辑本地知识库，兼容 Obsidian 文件格式与常用插件语法。0.3.2 要求 **Forge >=0.7.0**，沿用插件 API 4 与 Nexus v1，由 Forge API 5 兼容，不限制官方 Codex 客户端版本，客户端适配由 Forge 负责；无需启动 Obsidian，也无需在 Obsidian 安装桥接插件。
 
 ## 使用
 

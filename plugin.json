@@ -3,11 +3,11 @@
   "apiVersion": 4,
   "id": "homeftw.nexus",
   "name": "星枢 Nexus",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "独立安装的知识库插件：笔记渲染编辑、双向链接、图谱、数据库、模板、日记和模型工具。无需运行 Obsidian。",
   "compatibility": {
     "forge": [
-      ">=0.6.1 <0.7.0"
+      ">=0.7.0"
     ]
   },
   "permissions": [
@@ -59,6 +59,14 @@
     ]
   },
   "changelog": [
+    {
+      "version": "0.3.2",
+      "date": "2026-11-13",
+      "items": [
+        "最低 Forge 版本提升至 0.7.0，继续不限制官方 Codex 客户端版本。",
+        "沿用 API 4 与 Nexus v1，通过 Forge API 5 宿主的兼容层运行；现有功能和权限保持不变。"
+      ]
+    },
     {
       "version": "0.3.1",
       "date": "2026-11-12",

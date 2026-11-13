@@ -1,8 +1,8 @@
 # 星枢 Nexus API
 
-目标：星枢 0.3.1、Codex Forge **>=0.6.1 <0.7.0 / API 4**。插件清单省略 `compatibility.codex`，官方 Codex 客户端适配由 Forge 负责。能力 `nexus` v1、权限 `nexus.read` / `nexus.write` 和外部插件 ID `homeftw.nexus` 保持不变。Forge 0.6.0 使用星枢 0.3.0，API 3 宿主使用星枢 0.2.3。Forge 0.6.1 的旧 API 兼容不改变星枢当前的 API 4 声明。
+目标：星枢 0.3.2、Codex Forge **>=0.7.0**；当前实测宿主为 Forge 0.7.0 / API 5。插件继续声明 API 4，由宿主兼容既有公共接口，能力 `nexus` v1、原有权限和插件 ID `homeftw.nexus` 保持不变。插件清单省略 `compatibility.codex`，官方 Codex 客户端适配由 Forge 负责。Forge 0.6.1–0.6.3 可使用星枢 0.3.1。
 
-SDK 由 Forge 宿主注入，`window.CodexForge.apiVersion` 必须为 4；本插件不携带旧 SDK。Nexus v1 方法、参数、返回值和 revision 保护沿用 API 3 契约。API 4 新增的 `conversation.predict` / `prompt-prediction@1` 仅供内置预测插件，星枢不申请也不调用。
+SDK 由 Forge 宿主注入，`window.CodexForge.apiVersion` 必须为 4，`hostApiVersion` 在 Forge 0.7.0 中为 5；本插件不携带旧 SDK，也不需要申请 API 5 新增权限。Nexus v1 方法、参数、返回值和 revision 保护沿用 API 3 契约。API 4 新增的 `conversation.predict` / `prompt-prediction@1` 仅供内置预测插件，星枢不申请也不调用。
 
 渲染层 DataviewJS 另需 `nexus.script` 与 `nexus.read`；`nexus.script` 不可与 `network` 并用。它只允许浏览器中的隔离 Worker，不增加宿主查询语言或 MCP 脚本执行方法，见 [DATAVIEWJS.md](DATAVIEWJS.md)。
 

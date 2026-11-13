@@ -33,16 +33,19 @@ test('release installs without a Codex version constraint while rejecting unsupp
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
   const targets = [
-    { codex: '26.1106.6628.0', forge: '0.6.1', apiVersion: 4, supported: true },
-    { codex: '26.1103.7773.0', forge: '0.6.1', apiVersion: 4, supported: true },
-    { codex: '99.1.0.0', forge: '0.6.1', apiVersion: 4, supported: true },
-    { forge: '0.6.1', apiVersion: 4, supported: true },
+    { codex: '26.1106.6628.0', forge: '0.7.0', apiVersion: 5, supported: true },
+    { codex: '26.1103.7773.0', forge: '0.7.0', apiVersion: 5, supported: true },
+    { codex: '99.1.0.0', forge: '0.7.0', apiVersion: 5, supported: true },
+    { forge: '0.7.0', apiVersion: 5, supported: true },
+    { forge: '0.8.0', apiVersion: 5, supported: true },
     { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 3, supported: false },
     { codex: '26.1103.7773.0', forge: '0.5.2', apiVersion: 4, supported: false },
-    { codex: '26.1103.7773.0', forge: '0.7.0', apiVersion: 4, supported: false },
+    { codex: '26.1106.6628.0', forge: '0.6.3', apiVersion: 4, supported: false },
     { codex: '26.1103.7773.0', forge: '0.6.0', apiVersion: 4, supported: false },
     { codex: '26.1106.6628.0', forge: '0.6.1', apiVersion: 3, supported: false },
     { codex: '26.1106.6628.0', forge: '0.6.1', apiVersion: 5, supported: false },
+    { codex: '26.1106.6628.0', forge: '0.7.0', apiVersion: 3, supported: false },
+    { codex: '26.1106.6628.0', forge: '0.7.0', apiVersion: 6, supported: false },
   ];
   for (const [index, { supported, ...versions }] of targets.entries()) {
     const registry = new ForgeRegistry({ root: path.join(directory, String(index)), bundledRoot: path.join(directory, 'no-bundled-plugins'), versions });
@@ -69,7 +72,7 @@ test('legacy API 3 is rejected by Forge 0.6.0 but supported from 0.6.1 when its 
   assert.equal(compatibility({ ...legacy, compatibility: { ...legacy.compatibility, forge: ['>=0.4.2 <0.6.0'] } }, { ...versions, forge: '0.6.1' }).compatible, false);
 });
 
-for (const oldVersion of ['0.2.3', '0.3.0']) for (const enabled of [true, false]) test(`${oldVersion} upgrade preserves requested enablement (${enabled}), settings, storage and vault data`, t => {
+for (const oldVersion of ['0.2.3', '0.3.0', '0.3.1']) for (const enabled of [true, false]) test(`${oldVersion} upgrade preserves requested enablement (${enabled}), settings, storage and vault data`, t => {
   const h = harness({ install: false }); t.after(() => h.dispose());
   const { ForgeRegistry } = forgeRequire('runtime/forge-registry.cjs');
   const { applyPending, pendingUpdates } = forgeRequire('runtime/forge-plugin-updates.cjs');
@@ -79,11 +82,12 @@ for (const oldVersion of ['0.2.3', '0.3.0']) for (const enabled of [true, false]
   // Reproduce the published old version's compatibility contract without a network fixture.
   const legacy = oldVersion === '0.2.3';
   const old = { ...current, version: oldVersion, apiVersion: legacy ? 3 : 4, compatibility: { codex: legacy ? ['26.1027.6604.0', '26.1029.7803.0', '26.1103.4239.0', '26.1103.7773.0'] : ['26.1103.7773.0'], forge: [legacy ? '>=0.4.2 <0.6.0' : '>=0.6.0 <0.7.0'] } };
+  if (oldVersion === '0.3.1') old.compatibility = { forge: ['>=0.6.1 <0.7.0'] };
   manifestFile.content = Buffer.from(JSON.stringify(old)).toString('base64');
   const oldPackage = path.join(h.directory, 'old.forge-plugin.json');
   fs.writeFileSync(oldPackage, JSON.stringify(bundle));
   const options = { root: h.home, bundledRoot: path.join(h.directory, 'no-bundled-plugins') };
-  const previous = new ForgeRegistry({ ...options, versions: { codex: '26.1103.7773.0', forge: legacy ? '0.5.2' : '0.6.0', apiVersion: old.apiVersion } });
+  const previous = new ForgeRegistry({ ...options, versions: { codex: '26.1103.7773.0', forge: legacy ? '0.5.2' : oldVersion === '0.3.1' ? '0.6.1' : '0.6.0', apiVersion: old.apiVersion } });
   previous.install(oldPackage); previous.setEnabled(current.id, true);
   if (!enabled) previous.setEnabled(current.id, false);
   const vaultId = h.service.connect(h.vault).vault.id;
@@ -92,10 +96,10 @@ for (const oldVersion of ['0.2.3', '0.3.0']) for (const enabled of [true, false]
   const vaults = h.service.dispatch('vaults'), note = fs.readFileSync(path.join(h.vault, '首页.md'));
   const storage = path.join(h.home, 'storage', current.id + '.json');
   fs.writeFileSync(storage, JSON.stringify({ fixture: 'preserved' }));
-  const upgraded = new ForgeRegistry({ ...options, versions: { codex: '26.1106.6628.0', forge: '0.6.1', apiVersion: 4 } });
+  const upgraded = new ForgeRegistry({ ...options, versions: { codex: '26.1106.6628.0', forge: '0.7.0', apiVersion: 5 } });
   assert.equal(upgraded.status(current.id).enabled, false);
   assert.equal(upgraded.status(current.id).requestedEnabled, enabled);
-  assert(upgraded.status(current.id).reasons.some(reason => reason.includes('codex 26.1106.6628.0 不在声明兼容范围内')));
+  assert(upgraded.status(current.id).reasons.some(reason => reason.includes('forge 0.7.0 不在声明兼容范围内')));
   assert(!upgraded.status(current.id).reasons.some(reason => reason.includes('需要 Forge API')));
   assert.throws(() => upgraded.setEnabled(current.id, true), /不在声明兼容范围内/);
   const staged = upgraded.install(packageFile);
@@ -130,16 +134,19 @@ test('external plugin installs disabled, calls public SDK host methods, and can 
     });
   } };
   const sandbox = { window: { addEventListener: (_name, listener) => listeners.push(listener) }, parent, setTimeout, clearTimeout, console: { error: error => sdkErrors.push(error) } };
-  vm.runInNewContext(fs.readFileSync(path.join(forgeRoot, 'runtime/forge-sdk.js'), 'utf8'), sandbox);
+  const bundle = forgeRequire('runtime/forge-content.cjs').pluginBundle(h.host.registry, 'homeftw.nexus', { viewId: 'main' });
+  vm.runInNewContext(bundle.sdk, sandbox);
   const sdk = sandbox.window.CodexForge;
   t.after(() => { for (const listener of listeners) listener({ source: parent, data: { forgePluginEvent: { name: 'dispose' } } }); });
   const context = await new Promise(resolve => sdk.events.on('ready', resolve));
   assert.equal(sdk.apiVersion, 4); assert.equal(context.apiVersion, 4);
+  assert.equal(sdk.hostApiVersion, 5); assert.equal(context.hostApiVersion, 5);
   const capabilities = await sdk.capabilities.get();
+  assert.equal(capabilities.apiVersion, 4); assert.equal(capabilities.hostApiVersion, 5);
   assert(capabilities.negotiated.some(item => item.name === 'nexus' && item.version === 1 && item.granted));
   assert(!capabilities.permissions.includes('conversation.predict'));
   assert(!capabilities.negotiated.some(item => item.name === 'prompt-prediction'));
-  assert.throws(() => createAdapter({ ...sdk, apiVersion: 3 }), /Forge 0\.6\.1.*API 4/);
+  assert.throws(() => createAdapter({ ...sdk, apiVersion: 3 }), /Forge 0\.7\.0.*API 4/);
   const api = createAdapter(sdk); const connected = await api.request('nexus', { method: 'connect' });
   const vaultId = connected.vault.id;
   const doc = await api.request('nexus', { method: 'read', args: { vaultId, path: '首页.md' } });
